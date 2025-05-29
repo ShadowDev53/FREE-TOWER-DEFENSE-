@@ -77,6 +77,41 @@ let Turret = new Phaser.Class({
     }
 });
 
+let Bullet = new Phaser.Class({
+    Extends: Phaser.GameObjects.Image,
+
+    initialize:
+
+    function Bullet (scene) {
+        Phaser.GameObjects.Image.call(this, scene, 0, 0, 'bullet');
+
+        this.dx = 0;
+        this.dy = 0;
+        this.lifespan = 0;
+
+        this.speed = Phaser.Math.GetSpeed(600, 1);
+    },
+
+    fire: function(x, y, angle) {
+        this.setActive(true);
+        this.setVisible(true);
+        this.setPosition(x, y);
+        this.dx = Math.cos(angle);
+        this.dy = Math.sin(angle);
+        this.lifespan = 300;
+    },
+
+    update: function (time, delta) {
+        this.lifespan -= delta;
+        this.x += this.dx * (this.speed + delta);
+        this.x += this.dx * (this.speed + delta);
+        if (this.lifespan <=0) {
+            this.setActive(false);
+            this.setVisible(false);
+        }
+    }
+});
+
 
 
 let ENEMY_SPEED = 1 / 10000;
@@ -94,6 +129,7 @@ function create() {
     this.nextEnemy = 0;
     turrets = this.add.group ({classType: Turret, runChildUpdate: true});
     this.input.on('pointerdown', placeTurret);
+    bullets = this.add.group ({classType: Bullet, runChildUpdate: ture});
 }
 
 function update(time, delta) {
@@ -142,4 +178,5 @@ let newGraphics = this.add.graphics();
     }
  }
 
+ 
  
