@@ -2,7 +2,10 @@ const config = {
     type: Phaser.AUTO,
     parent: 'content',
     width: 640,
-    height: 512,   
+    height: 512,
+    physics: {
+        default: 'arcade'
+    },
     scene: {
         key: 'main',
         preload: preload,
@@ -15,14 +18,20 @@ const game = new Phaser.Game(config);
 let graphics;
 let path;
 let enemies;
-let map = [[ 0,-1, 0, 0, 0, 0, 0, 0, 0, 0],
-[ 0,-1, 0, 0, 0, 0, 0, 0, 0, 0],
-[ 0,-1,-1,-1,-1,-1,-1,-1, 0, 0],
-[ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
-[ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
-[ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
-[ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0],
-[ 0, 0, 0, 0, 0, 0, 0,-1, 0, 0]];
+let turrets;  // Declare turrets
+let bullets;
+let map = [
+    [0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
+    [0, -1, -1, -1, -1, -1, -1, -1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, -1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, -1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, -1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, -1, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, -1, 0, 0]
+];
+
+let ENEMY_SPEED = 1/10000
 
 function preload() {
     this.load.atlas('sprites', 'assets/spritesheet.png', 'assets/spritesheet.json');
@@ -32,7 +41,7 @@ function preload() {
 let Enemy = new Phaser.Class({
     Extends: Phaser.GameObjects.Image,
 
-    initialize: function Enemy (scene) {
+    initialize: function Enemy(scene) {
         Phaser.GameObjects.Image.call(this, scene, 0, 0, 'sprites', 'enemy');
         this.follower = { t: 0, vec: new Phaser.Math.Vector2() };
     },
@@ -51,42 +60,36 @@ let Enemy = new Phaser.Class({
             this.setActive(false);
             this.setVisible(false);
         }
-
-        
     }
 });
 
 let Turret = new Phaser.Class({
     Extends: Phaser.GameObjects.Image,
-    initialize:
-    function Turret (scene)
-    {
+
+    initialize: function Turret(scene) {
         Phaser.GameObjects.Image.call(this, scene, 0, 0, 'sprites', 'turret');
         this.nextTic = 0;
     },
-    //  according to the grid
-    place: function(i, j) {            
-        this.y = i * 64 + 64/2;
-        this.x = j * 64 + 64/2;
-        map[i][j] = 1;            
+
+    place: function(i, j) {
+        this.y = i * 64 + 64 / 2;
+        this.x = j * 64 + 64 / 2;
+        map[i][j] = 1;
     },
-    update: function (time, delta)
-    {
-        // time to shoot
-        if(time > this.nextTic) {   
-            this.fire();             
+
+    update: function(time, delta) {
+        if (time > this.nextTic) {
+            this.fire();
             this.nextTic = time + 1000;
         }
-
-        
-    }
+    },
 
     fire: function() {
         let enemy = getEnemy(this.x, this.y, 100);
         if (enemy) {
             let angle = Phaser.Math.Angle.Between(this.x, this.y, enemy.x, enemy.y);
             addBullet(this.x, this.y, angle);
-            this.angle = (angle + Math.PI/2) * Phaser.Math.RAD_TO_DEG;
+            this.angle = (angle + Math.PI / 2) * Phaser.Math.RAD_TO_DEG;
         }
     }
 });
@@ -94,9 +97,7 @@ let Turret = new Phaser.Class({
 let Bullet = new Phaser.Class({
     Extends: Phaser.GameObjects.Image,
 
-    initialize:
-
-    function Bullet (scene) {
+    initialize: function Bullet(scene) {
         Phaser.GameObjects.Image.call(this, scene, 0, 0, 'bullet');
 
         this.dx = 0;
@@ -115,20 +116,16 @@ let Bullet = new Phaser.Class({
         this.lifespan = 300;
     },
 
-    update: function (time, delta) {
+    update: function(time, delta) {
         this.lifespan -= delta;
         this.x += this.dx * (this.speed + delta);
-        this.x += this.dx * (this.speed + delta);
-        if (this.lifespan <=0) {
+        this.y += this.dy * (this.speed + delta);
+        if (this.lifespan <= 0) {
             this.setActive(false);
             this.setVisible(false);
         }
     }
 });
-
-
-
-let ENEMY_SPEED = 1 / 10000;
 
 function create() {
     graphics = this.add.graphics();
@@ -139,11 +136,14 @@ function create() {
     graphics.lineStyle(3, 0xffffff, 1); // width of 3, white, opacity of 1
     path.draw(graphics);
 
-    enemies = this.add.group({ classType: Enemy, runChildUpdate: true});
+    enemies = this.add.group({ classType: Enemy, runChildUpdate: true });
     this.nextEnemy = 0;
-    turrets = this.add.group ({classType: Turret, runChildUpdate: true});
+    turrets = this.add.group({ classType: Turret, runChildUpdate: true });
     this.input.on('pointerdown', placeTurret);
-    bullets = this.add.group ({classType: Bullet, runChildUpdate: ture});
+    bullets = this.add.group({ classType: Bullet, runChildUpdate: true });
+
+    let newGraphics = this.add.graphics();
+    drawGrid(newGraphics);
 }
 
 function update(time, delta) {
@@ -160,13 +160,12 @@ function update(time, delta) {
 
 function drawGrid(graphics) {
     graphics.lineStyle(1, 0x0000ff, 0.8);
-    for(let i = 0; i < 8; i++) {
-       graphics.moveTo(0, i * 64);
-       graphics.lineTo(640, i * 64);
-
+    for (let i = 0; i < 8; i++) {
+        graphics.moveTo(0, i * 64);
+        graphics.lineTo(640, i * 64);
     }
-    for(let j = 0; j < 10; j++) {
-        graphics.moveTo(j * 64);
+    for (let j = 0; j < 10; j++) {
+        graphics.moveTo(j * 64, 0);
         graphics.lineTo(j * 64, 512);
     }
     graphics.strokePath();
@@ -175,37 +174,33 @@ function drawGrid(graphics) {
 function canPlaceTurret(i, j) {
     return map[i][j] === 0;
 }
-let newGraphics = this.add.graphics();
- drawGrid(newGraphics)
 
- function placeTurret(pointer) {
-    let i = Math.floor(pointer.y/64);
-    let j = Math.floor(pointer.x/64);
-    if(canPlaceTurret(i, j)) {
+function placeTurret(pointer) {
+    let i = Math.floor(pointer.y / 64);
+    let j = Math.floor(pointer.x / 64);
+    if (canPlaceTurret(i, j)) {
         let turret = turrets.get();
         if (turret) {
             turret.setActive(true);
             turret.setVisible(true);
             turret.place(i, j);
         }
-
     }
- }
+}
 
- function addBullet(x, y, angle) {
+function addBullet(x, y, angle) {
     let bullet = bullets.get();
     if (bullet) {
         bullet.fire(x, y, angle);
     }
- }
- 
- function getEnemy(x, y, distance) {
+}
+
+function getEnemy(x, y, distance) {
     let enemyUnits = enemies.getChildren();
-    for(let i = 0; i < enemyUnits.length; i++) {
-       if (enemyUnits[i].active && Phaser.Math.Distance.Between(x, y, enemyUnits[i].x, enemyUnits[i].y <=distance)) {
-        return enemyUnits[i];
-        
-       }
-       return false;
+    for (let i = 0; i < enemyUnits.length; i++) {
+        if (enemyUnits[i].active && Phaser.Math.Distance.Between(x, y, enemyUnits[i].x, enemyUnits[i].y) <= distance) {
+            return enemyUnits[i];
+        }
     }
- }
+    return false; // This is now outside the loop
+}
