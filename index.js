@@ -18,7 +18,7 @@ const game = new Phaser.Game(config);
 let graphics;
 let path;
 let enemies;
-let turrets;  
+let turrets;
 let bullets;
 let map = [
     [0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -30,8 +30,11 @@ let map = [
     [0, 0, 0, 0, 0, 0, 0, -1, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, -1, 0, 0]
 ];
+let fireDamage = 50;
+let ENEMY_SPEED = 1 / 10
+let lives = 10;
+const updateLife = document.getElementById("life");
 
-let ENEMY_SPEED = 1/10000
 
 function preload() {
     this.load.atlas('sprites', 'assets/spritesheet.png', 'assets/spritesheet.json');
@@ -51,16 +54,16 @@ let Enemy = new Phaser.Class({
         path.getPoint(this.follower.t, this.follower.vec);
         this.setPosition(this.follower.vec.x, this.follower.vec.y);
         this.hp = 100;
-        
+
     },
 
-    receiveDamage: function(damage) {
+    receiveDamage: function (damage) {
         this.hp -= damage;
         if (this.hp <= 0) {
             this.setActive(false);
             this.setVisible(false);
         }
-        
+
     },
 
     update: function (time, delta) {
@@ -70,6 +73,11 @@ let Enemy = new Phaser.Class({
         if (this.follower.t >= 1) {
             this.setActive(false);
             this.setVisible(false);
+            lives -= 1;
+            updateLife.textContent = "Lives: " + lives;
+            if (lives === 0) {
+                window.location.href = 'gameover.html';
+            }
         }
     }
 });
@@ -82,20 +90,20 @@ let Turret = new Phaser.Class({
         this.nextTic = 0;
     },
 
-    place: function(i, j) {
+    place: function (i, j) {
         this.y = i * 64 + 64 / 2;
         this.x = j * 64 + 64 / 2;
         map[i][j] = 1;
     },
 
-    update: function(time, delta) {
+    update: function (time, delta) {
         if (time > this.nextTic) {
             this.fire();
             this.nextTic = time + 1000;
         }
     },
 
-    fire: function() {
+    fire: function () {
         let enemy = getEnemy(this.x, this.y, 100);
         if (enemy) {
             let angle = Phaser.Math.Angle.Between(this.x, this.y, enemy.x, enemy.y);
@@ -104,7 +112,7 @@ let Turret = new Phaser.Class({
         }
     },
 
-   
+
 });
 
 let Bullet = new Phaser.Class({
@@ -120,7 +128,7 @@ let Bullet = new Phaser.Class({
         this.speed = Phaser.Math.GetSpeed(600, 1);
     },
 
-    fire: function(x, y, angle) {
+    fire: function (x, y, angle) {
         this.setActive(true);
         this.setVisible(true);
         this.setPosition(x, y);
@@ -129,7 +137,7 @@ let Bullet = new Phaser.Class({
         this.lifespan = 300;
     },
 
-    update: function(time, delta) {
+    update: function (time, delta) {
         this.lifespan -= delta;
         this.x += this.dx * (this.speed + delta);
         this.y += this.dy * (this.speed + delta);
@@ -220,10 +228,10 @@ function getEnemy(x, y, distance) {
 }
 
 function damageEnemy(enemy, bullet) {
-    
+
     if (enemy.active === true && bullet.active === true) {
         bullet.setActive(false);
         bullet.setVisible(false);
-        enemy.receiveDamage(50);
+        enemy.receiveDamage(fireDamage);
     }
 }
