@@ -18,7 +18,7 @@ const game = new Phaser.Game(config);
 let graphics;
 let path;
 let enemies;
-let turrets;  // Declare turrets
+let turrets;  
 let bullets;
 let map = [
     [0, -1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -51,6 +51,15 @@ let Enemy = new Phaser.Class({
         path.getPoint(this.follower.t, this.follower.vec);
         this.setPosition(this.follower.vec.x, this.follower.vec.y);
         this.hp = 100;
+        
+    },
+
+    receiveDamage: function(damage) {
+        this.hp -= damage;
+        if (this.hp <= 0) {
+            this.setActive(false);
+            this.setVisible(false);
+        }
         
     },
 
@@ -95,13 +104,7 @@ let Turret = new Phaser.Class({
         }
     },
 
-    recieveDamage: function(damage) {
-        this.hp -= damage;
-        if (this.hp <= 0) {
-            this.setActive(false);
-            this.setVisible(false);
-        }
-    },
+   
 });
 
 let Bullet = new Phaser.Class({
@@ -154,6 +157,7 @@ function create() {
 
     let newGraphics = this.add.graphics();
     drawGrid(newGraphics);
+    this.physics.add.overlap(enemies, bullets, damageEnemy);
 }
 
 function update(time, delta) {
@@ -212,5 +216,14 @@ function getEnemy(x, y, distance) {
             return enemyUnits[i];
         }
     }
-    return false; // This is now outside the loop
+    return false;
+}
+
+function damageEnemy(enemy, bullet) {
+    
+    if (enemy.active === true && bullet.active === true) {
+        bullet.setActive(false);
+        bullet.setVisible(false);
+        enemy.receiveDamage(50);
+    }
 }
