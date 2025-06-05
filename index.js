@@ -31,7 +31,7 @@ let map = [
     [0, 0, 0, 0, 0, 0, 0, -1, 0, 0]
 ];
 let fireDamage = 50;
-let ENEMY_SPEED = 1 / 10
+let ENEMY_SPEED = 1 / 10000
 let lives = 10;
 const updateLife = document.getElementById("life");
 
