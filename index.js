@@ -30,10 +30,13 @@ let map = [
     [0, 0, 0, 0, 0, 0, 0, -1, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, -1, 0, 0]
 ];
-let fireDamage = 50;
-let ENEMY_SPEED = 1 / 10000
+let fireDamage = 25;
+let ENEMY_SPEED = 1 / 10000;
 let lives = 10;
+let money = 10;
+let fireSpeed = 1000;
 const updateLife = document.getElementById("life");
+const updateMoney = document.getElementById("money");
 
 
 function preload() {
@@ -62,6 +65,8 @@ let Enemy = new Phaser.Class({
         if (this.hp <= 0) {
             this.setActive(false);
             this.setVisible(false);
+            money += 1
+            updateMoney.textContent = "Money: " + money + "$"
         }
 
     },
@@ -99,7 +104,7 @@ let Turret = new Phaser.Class({
     update: function (time, delta) {
         if (time > this.nextTic) {
             this.fire();
-            this.nextTic = time + 1000;
+            this.nextTic = time + fireSpeed;
         }
     },
 
@@ -144,6 +149,7 @@ let Bullet = new Phaser.Class({
         if (this.lifespan <= 0) {
             this.setActive(false);
             this.setVisible(false);
+            
         }
     }
 });
@@ -178,6 +184,8 @@ function update(time, delta) {
             this.nextEnemy = time + 2000;
         }
     }
+
+    
 }
 
 function drawGrid(graphics) {
@@ -200,12 +208,14 @@ function canPlaceTurret(i, j) {
 function placeTurret(pointer) {
     let i = Math.floor(pointer.y / 64);
     let j = Math.floor(pointer.x / 64);
-    if (canPlaceTurret(i, j)) {
+    if (canPlaceTurret(i, j) && money >= 5) {
         let turret = turrets.get();
         if (turret) {
             turret.setActive(true);
             turret.setVisible(true);
             turret.place(i, j);
+            money -= 5
+            updateMoney.textContent = "Money: " + money + "$";
         }
     }
 }
@@ -233,5 +243,22 @@ function damageEnemy(enemy, bullet) {
         bullet.setActive(false);
         bullet.setVisible(false);
         enemy.receiveDamage(fireDamage);
+    }
+}
+
+function fireUpgrade() {
+     if (money >= 5) {
+        fireSPeed -= 10;
+        money -= 5;
+        updateMoney.textContent = "Money: " + money + $;
+     }
+
+}
+
+function damageUpgrade() {
+    if (money >= 5) {
+        money -= 5;
+        fireDamage += 10;
+        updateMoney.textContent = "Money: " + money + "$";
     }
 }
