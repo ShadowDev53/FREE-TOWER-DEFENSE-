@@ -50,7 +50,7 @@ let Enemy = new Phaser.Class({
     initialize: function Enemy(scene) {
         Phaser.GameObjects.Image.call(this, scene, 0, 0, 'sprites', 'enemy');
         this.follower = { t: 0, vec: new Phaser.Math.Vector2() };
-    },
+    }, 
 
     startOnPath: function () {
         this.follower.t = 0;
@@ -69,7 +69,7 @@ let Enemy = new Phaser.Class({
             updateMoney.textContent = "Money: " + money + "$"
         }
 
-    },
+    }, // should take 4 hits at first
 
     update: function (time, delta) {
         this.follower.t += ENEMY_SPEED * delta;
@@ -99,7 +99,7 @@ let Turret = new Phaser.Class({
         this.y = i * 64 + 64 / 2;
         this.x = j * 64 + 64 / 2;
         map[i][j] = 1;
-    },
+    }, //can only place on squares
 
     update: function (time, delta) {
         if (time > this.nextTic) {
