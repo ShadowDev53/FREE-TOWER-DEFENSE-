@@ -35,8 +35,10 @@ let ENEMY_SPEED = 1 / 10000;
 let lives = 10;
 let money = 10;
 let fireSpeed = 1000;
+let level = 1
 const updateLife = document.getElementById("life");
 const updateMoney = document.getElementById("money");
+const updateLevel = document.getElementById("level")
 
 
 function preload() {
@@ -95,16 +97,31 @@ let Turret = new Phaser.Class({
         this.nextTic = 0;
     },
 
-    place: function (i, j) {
+    place: function (i, j, time) {
+        this.row = i;
+        this.col = j;
+        this.placedAt = time; // Record time of placement
         this.y = i * 64 + 64 / 2;
         this.x = j * 64 + 64 / 2;
         map[i][j] = 1;
-    }, //can only place on squares
+    },
 
     update: function (time, delta) {
+        // Fire bullets at intervals
         if (time > this.nextTic) {
             this.fire();
             this.nextTic = time + fireSpeed;
+        }
+
+        // Check if it's been 20 seconds since placement
+        if (this.placedAt && time - this.placedAt > 20000) {
+            this.setActive(false);
+            this.setVisible(false);
+
+            // Free the map cell
+            if (typeof this.row !== 'undefined' && typeof this.col !== 'undefined') {
+                map[this.row][this.col] = 0;
+            }
         }
     },
 
@@ -115,10 +132,9 @@ let Turret = new Phaser.Class({
             addBullet(this.x, this.y, angle);
             this.angle = (angle + Math.PI / 2) * Phaser.Math.RAD_TO_DEG;
         }
-    },
-
-
+    }
 });
+
 
 let Bullet = new Phaser.Class({
     Extends: Phaser.GameObjects.Image,
@@ -172,6 +188,7 @@ function create() {
     let newGraphics = this.add.graphics();
     drawGrid(newGraphics);
     this.physics.add.overlap(enemies, bullets, damageEnemy);
+    
 }
 
 function update(time, delta) {
@@ -213,12 +230,13 @@ function placeTurret(pointer) {
         if (turret) {
             turret.setActive(true);
             turret.setVisible(true);
-            turret.place(i, j);
-            money -= 5
+            turret.place(i, j, game.scene.keys.main.time.now); // Pass placement time
+            money -= 5;
             updateMoney.textContent = "Money: " + money + "$";
         }
     }
 }
+
 
 function addBullet(x, y, angle) {
     let bullet = bullets.get();
