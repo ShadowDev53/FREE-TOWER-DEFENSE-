@@ -33,9 +33,12 @@ let map = [
 let fireDamage = 25;
 let ENEMY_SPEED = 1 / 10000;
 let lives = 10;
-let money = 10;
+let money = 6;
 let fireSpeed = 1000;
-let level = 1
+let level = 1;
+let kills = 0;
+let enemyPlace = 2000;
+let health = 50
 const updateLife = document.getElementById("life");
 const updateMoney = document.getElementById("money");
 const updateLevel = document.getElementById("level")
@@ -58,7 +61,7 @@ let Enemy = new Phaser.Class({
         this.follower.t = 0;
         path.getPoint(this.follower.t, this.follower.vec);
         this.setPosition(this.follower.vec.x, this.follower.vec.y);
-        this.hp = 100;
+        this.hp = health;
 
     },
 
@@ -67,8 +70,9 @@ let Enemy = new Phaser.Class({
         if (this.hp <= 0) {
             this.setActive(false);
             this.setVisible(false);
-            money += 1
-            updateMoney.textContent = "Money: " + money + "$"
+            kills +=1;
+            money += 1;
+            updateMoney.textContent = "Money: " + money + "$";
         }
 
     }, // should take 4 hits at first
@@ -95,15 +99,17 @@ let Turret = new Phaser.Class({
     initialize: function Turret(scene) {
         Phaser.GameObjects.Image.call(this, scene, 0, 0, 'sprites', 'turret');
         this.nextTic = 0;
+        this.decayStartTime = null; // <-- NEW: when the 20s countdown starts
     },
 
     place: function (i, j, time) {
         this.row = i;
         this.col = j;
-        this.placedAt = time; // Record time of placement
         this.y = i * 64 + 64 / 2;
         this.x = j * 64 + 64 / 2;
         map[i][j] = 1;
+        this.placedAt = time;
+        this.decayStartTime = null; // reset on placement
     },
 
     update: function (time, delta) {
@@ -113,12 +119,16 @@ let Turret = new Phaser.Class({
             this.nextTic = time + fireSpeed;
         }
 
-        // Check if it's been 20 seconds since placement
-        if (this.placedAt && time - this.placedAt > 20000) {
+        // Start the 20s countdown when level goes above 1
+        if (level > 1 && this.decayStartTime === null) {
+            this.decayStartTime = time; // Set countdown start time ONCE
+        }
+
+        // If countdown started, and 20s have passed, remove turret
+        if (this.decayStartTime && time - this.decayStartTime > 20000) {
             this.setActive(false);
             this.setVisible(false);
 
-            // Free the map cell
             if (typeof this.row !== 'undefined' && typeof this.col !== 'undefined') {
                 map[this.row][this.col] = 0;
             }
@@ -134,6 +144,7 @@ let Turret = new Phaser.Class({
         }
     }
 });
+
 
 
 let Bullet = new Phaser.Class({
@@ -198,8 +209,16 @@ function update(time, delta) {
             newEnemy.setActive(true);
             newEnemy.setVisible(true);
             newEnemy.startOnPath();
-            this.nextEnemy = time + 2000;
+            this.nextEnemy = time + enemyPlace;
         }
+    }
+
+    if (kills/level === 10) {
+        level += 1;
+        ENEMY_SPEED += (1/50000)
+        enemyPlace -= 75;
+        health += 25;
+        updateLevel.textContent = "Level: " + level;
     }
 
     
@@ -225,13 +244,13 @@ function canPlaceTurret(i, j) {
 function placeTurret(pointer) {
     let i = Math.floor(pointer.y / 64);
     let j = Math.floor(pointer.x / 64);
-    if (canPlaceTurret(i, j) && money >= 5) {
+    if (canPlaceTurret(i, j) && money >= 3) {
         let turret = turrets.get();
         if (turret) {
             turret.setActive(true);
             turret.setVisible(true);
             turret.place(i, j, game.scene.keys.main.time.now); // Pass placement time
-            money -= 5;
+            money -= 3;
             updateMoney.textContent = "Money: " + money + "$";
         }
     }
