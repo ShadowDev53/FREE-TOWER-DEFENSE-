@@ -38,11 +38,14 @@ let fireSpeed = 1000;
 let level = 1;
 let kills = 0;
 let enemyPlace = 2000;
-let health = 50
+let health = 50;
+
 const updateLife = document.getElementById("life");
 const updateMoney = document.getElementById("money");
-const updateLevel = document.getElementById("level")
+const updateLevel = document.getElementById("level");
 
+
+let nextTurretDecay = 0;
 
 function preload() {
     this.load.atlas('sprites', 'assets/spritesheet.png', 'assets/spritesheet.json');
@@ -55,14 +58,13 @@ let Enemy = new Phaser.Class({
     initialize: function Enemy(scene) {
         Phaser.GameObjects.Image.call(this, scene, 0, 0, 'sprites', 'enemy');
         this.follower = { t: 0, vec: new Phaser.Math.Vector2() };
-    }, 
+    },
 
     startOnPath: function () {
         this.follower.t = 0;
         path.getPoint(this.follower.t, this.follower.vec);
         this.setPosition(this.follower.vec.x, this.follower.vec.y);
         this.hp = health;
-
     },
 
     receiveDamage: function (damage) {
@@ -70,12 +72,11 @@ let Enemy = new Phaser.Class({
         if (this.hp <= 0) {
             this.setActive(false);
             this.setVisible(false);
-            kills +=1;
+            kills += 1;
             money += 1;
             updateMoney.textContent = "Money: " + money + "$";
         }
-
-    }, // should take 4 hits at first
+    },
 
     update: function (time, delta) {
         this.follower.t += ENEMY_SPEED * delta;
@@ -99,7 +100,7 @@ let Turret = new Phaser.Class({
     initialize: function Turret(scene) {
         Phaser.GameObjects.Image.call(this, scene, 0, 0, 'sprites', 'turret');
         this.nextTic = 0;
-        this.decayStartTime = null; // <-- NEW: when the 20s countdown starts
+       
     },
 
     place: function (i, j, time) {
@@ -109,30 +110,14 @@ let Turret = new Phaser.Class({
         this.x = j * 64 + 64 / 2;
         map[i][j] = 1;
         this.placedAt = time;
-        this.decayStartTime = null; // reset on placement
     },
 
     update: function (time, delta) {
-        // Fire bullets at intervals
         if (time > this.nextTic) {
             this.fire();
             this.nextTic = time + fireSpeed;
         }
-
-        // Start the 20s countdown when level goes above 1
-        if (level > 1 && this.decayStartTime === null) {
-            this.decayStartTime = time; // Set countdown start time ONCE
-        }
-
-        // If countdown started, and 20s have passed, remove turret
-        if (this.decayStartTime && time - this.decayStartTime > 20000) {
-            this.setActive(false);
-            this.setVisible(false);
-
-            if (typeof this.row !== 'undefined' && typeof this.col !== 'undefined') {
-                map[this.row][this.col] = 0;
-            }
-        }
+      
     },
 
     fire: function () {
@@ -145,18 +130,14 @@ let Turret = new Phaser.Class({
     }
 });
 
-
-
 let Bullet = new Phaser.Class({
     Extends: Phaser.GameObjects.Image,
 
     initialize: function Bullet(scene) {
         Phaser.GameObjects.Image.call(this, scene, 0, 0, 'bullet');
-
         this.dx = 0;
         this.dy = 0;
         this.lifespan = 0;
-
         this.speed = Phaser.Math.GetSpeed(600, 1);
     },
 
@@ -176,7 +157,6 @@ let Bullet = new Phaser.Class({
         if (this.lifespan <= 0) {
             this.setActive(false);
             this.setVisible(false);
-            
         }
     }
 });
@@ -187,7 +167,7 @@ function create() {
     path.lineTo(96, 164);
     path.lineTo(480, 164);
     path.lineTo(480, 544);
-    graphics.lineStyle(3, 0xffffff, 1); // width of 3, white, opacity of 1
+    graphics.lineStyle(3, 0xffffff, 1);
     path.draw(graphics);
 
     enemies = this.physics.add.group({ classType: Enemy, runChildUpdate: true });
@@ -199,7 +179,9 @@ function create() {
     let newGraphics = this.add.graphics();
     drawGrid(newGraphics);
     this.physics.add.overlap(enemies, bullets, damageEnemy);
-    
+
+   
+    nextTurretDecay = 0;
 }
 
 function update(time, delta) {
@@ -213,15 +195,27 @@ function update(time, delta) {
         }
     }
 
-    if (kills/level === 10) {
+    if (kills / level === 20) {
         level += 1;
-        ENEMY_SPEED += (1/50000)
+        ENEMY_SPEED += (1 / 50000);
         enemyPlace -= 75;
-        health += 25;
+        health += 50;
         updateLevel.textContent = "Level: " + level;
     }
 
-    
+    // Remove a random turret every 10 seconds if level > 1
+    if (level > 1 && time > nextTurretDecay) {
+        let activeTurrets = turrets.getChildren().filter(t => t.active);
+        if (activeTurrets.length > 0) {
+            let randomTurret = Phaser.Utils.Array.GetRandom(activeTurrets);
+            randomTurret.setActive(false);
+            randomTurret.setVisible(false);
+            if (typeof randomTurret.row !== 'undefined' && typeof randomTurret.col !== 'undefined') {
+                map[randomTurret.row][randomTurret.col] = 0;
+            }
+        }
+        nextTurretDecay = time + 10000;  
+    }
 }
 
 function drawGrid(graphics) {
@@ -244,18 +238,17 @@ function canPlaceTurret(i, j) {
 function placeTurret(pointer) {
     let i = Math.floor(pointer.y / 64);
     let j = Math.floor(pointer.x / 64);
-    if (canPlaceTurret(i, j) && money >= 3) {
+    if (canPlaceTurret(i, j) && money >= 2) {
         let turret = turrets.get();
         if (turret) {
             turret.setActive(true);
             turret.setVisible(true);
-            turret.place(i, j, game.scene.keys.main.time.now); // Pass placement time
-            money -= 3;
+            turret.place(i, j, game.scene.keys.main.time.now);
+            money -= 2;
             updateMoney.textContent = "Money: " + money + "$";
         }
     }
 }
-
 
 function addBullet(x, y, angle) {
     let bullet = bullets.get();
@@ -275,7 +268,6 @@ function getEnemy(x, y, distance) {
 }
 
 function damageEnemy(enemy, bullet) {
-
     if (enemy.active === true && bullet.active === true) {
         bullet.setActive(false);
         bullet.setVisible(false);
@@ -284,12 +276,11 @@ function damageEnemy(enemy, bullet) {
 }
 
 function fireUpgrade() {
-     if (money >= 5) {
-        fireSPeed -= 10;
+    if (money >= 5) {
+        fireSpeed -= 10;
         money -= 5;
-        updateMoney.textContent = "Money: " + money + $;
-     }
-
+        updateMoney.textContent = "Money: " + money + "$";
+    }
 }
 
 function damageUpgrade() {
