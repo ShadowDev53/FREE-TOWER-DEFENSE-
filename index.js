@@ -33,16 +33,27 @@ let map = [
 let fireDamage = 25;
 let ENEMY_SPEED = 1 / 10000;
 let lives = 10;
-let money = 6;
+let money = 10;
 let fireSpeed = 1000;
 let level = 1;
 let kills = 0;
 let enemyPlace = 2000;
-let health = 50;
+let health = 100;
+let upgradeDamage = 5;
+let upgradeSpeed = 5;
+let upgradeRange = 5
+let upgradeMoney = 5
+let range = 100;
+let killValue = 1
+
 
 const updateLife = document.getElementById("life");
 const updateMoney = document.getElementById("money");
 const updateLevel = document.getElementById("level");
+const updateDamage = document.getElementById("damage");
+const updateRange = document.getElementById("range");
+const updateMoneyCost = document.getElementById("moneyPerKill");
+const updateFire = document.getElementById("fire");
 
 
 let nextTurretDecay = 0;
@@ -73,8 +84,8 @@ let Enemy = new Phaser.Class({
             this.setActive(false);
             this.setVisible(false);
             kills += 1;
-            money += 1;
-            updateMoney.textContent = "Money: " + money + "$";
+            money += killValue;
+            updateMoney.textContent = "Money: $" + money;
         }
     },
 
@@ -121,7 +132,7 @@ let Turret = new Phaser.Class({
     },
 
     fire: function () {
-        let enemy = getEnemy(this.x, this.y, 100);
+        let enemy = getEnemy(this.x, this.y, range);
         if (enemy) {
             let angle = Phaser.Math.Angle.Between(this.x, this.y, enemy.x, enemy.y);
             addBullet(this.x, this.y, angle);
@@ -197,8 +208,8 @@ function update(time, delta) {
 
     if (kills / level === 20) {
         level += 1;
-        ENEMY_SPEED += (1 / 50000);
-        enemyPlace -= 75;
+        enemyPlace = Math.max(enemyPlace - 500, 500);
+
         health += 50;
         updateLevel.textContent = "Level: " + level;
     }
@@ -214,7 +225,7 @@ function update(time, delta) {
                 map[randomTurret.row][randomTurret.col] = 0;
             }
         }
-        nextTurretDecay = time + 10000;  
+        nextTurretDecay = time + 3000;  
     }
 }
 
@@ -245,7 +256,7 @@ function placeTurret(pointer) {
             turret.setVisible(true);
             turret.place(i, j, game.scene.keys.main.time.now);
             money -= 2;
-            updateMoney.textContent = "Money: " + money + "$";
+            updateMoney.textContent = "Money: $" + money;
         }
     }
 }
@@ -276,17 +287,43 @@ function damageEnemy(enemy, bullet) {
 }
 
 function fireUpgrade() {
-    if (money >= 5) {
+    if (money >= upgradeSpeed) {
+        money -= upgradeSpeed;
+        upgradeSpeed += 1;
         fireSpeed -= 10;
-        money -= 5;
-        updateMoney.textContent = "Money: " + money + "$";
+        updateMoney.textContent = "Money: $" + money;
+        updateFire.textContent = "Increase fire frequency: $" + upgradeSpeed;
     }
 }
 
 function damageUpgrade() {
-    if (money >= 5) {
-        money -= 5;
+    if (money >= upgradeDamage) {
+        money -= upgradeDamage;
+        upgradeDamage += 1;
         fireDamage += 10;
-        updateMoney.textContent = "Money: " + money + "$";
+        updateMoney.textContent = "Money: $" + money;
+        updateDamage.textContent = "Increase damage: $" + upgradeDamage;
+    }
+}
+
+function rangeUpgrade() {
+    if (money >= upgradeRange) {
+        money -= upgradeRange;
+        upgradeRange +=1;
+        range += 50;
+        updateMoney.textContent = "Money: $" + money;
+        updateRange.textContent = "Increase Range: $" + upgradeRange;
+
+    }
+}
+
+function moneyUpgrade() {
+    if (money >= upgradeMoney) {
+        money -= upgradeMoney;
+        upgradeMoney +=1;
+        killValue += 1;
+        updateMoney.textContent = "Money: $" + money;
+        updateMoneyCost.textContent = "Increase Range: $" + upgradeRange;
+
     }
 }
