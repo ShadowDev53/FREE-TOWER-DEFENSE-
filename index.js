@@ -33,18 +33,18 @@ let map = [
 let fireDamage = 25;
 let ENEMY_SPEED = 1 / 10000;
 let lives = 10;
-let money = 10;
+let money = 20;
 let fireSpeed = 1000;
 let level = 1;
 let kills = 0;
 let enemyPlace = 2000;
 let health = 100;
-let upgradeDamage = 5;
-let upgradeSpeed = 5;
-let upgradeRange = 5
-let upgradeMoney = 5
+let upgradeDamage = 10;
+let upgradeSpeed = 10;
+let upgradeRange = 10;
+let upgradeMoney = 10;
 let range = 100;
-let killValue = 1
+let killValue = 1;
 
 
 const updateLife = document.getElementById("life");
@@ -225,7 +225,7 @@ function update(time, delta) {
                 map[randomTurret.row][randomTurret.col] = 0;
             }
         }
-        nextTurretDecay = time + 3000;  
+        nextTurretDecay = time + 5000;  
     }
 }
 
@@ -249,13 +249,13 @@ function canPlaceTurret(i, j) {
 function placeTurret(pointer) {
     let i = Math.floor(pointer.y / 64);
     let j = Math.floor(pointer.x / 64);
-    if (canPlaceTurret(i, j) && money >= 2) {
+    if (canPlaceTurret(i, j) && money >= 5) {
         let turret = turrets.get();
         if (turret) {
             turret.setActive(true);
             turret.setVisible(true);
             turret.place(i, j, game.scene.keys.main.time.now);
-            money -= 2;
+            money -= 5;
             updateMoney.textContent = "Money: $" + money;
         }
     }
@@ -289,7 +289,7 @@ function damageEnemy(enemy, bullet) {
 function fireUpgrade() {
     if (money >= upgradeSpeed) {
         money -= upgradeSpeed;
-        upgradeSpeed += 1;
+        upgradeSpeed += 5;
         fireSpeed -= 10;
         updateMoney.textContent = "Money: $" + money;
         updateFire.textContent = "Increase fire frequency: $" + upgradeSpeed;
@@ -299,7 +299,7 @@ function fireUpgrade() {
 function damageUpgrade() {
     if (money >= upgradeDamage) {
         money -= upgradeDamage;
-        upgradeDamage += 1;
+        upgradeDamage += 5;
         fireDamage += 10;
         updateMoney.textContent = "Money: $" + money;
         updateDamage.textContent = "Increase damage: $" + upgradeDamage;
@@ -309,8 +309,8 @@ function damageUpgrade() {
 function rangeUpgrade() {
     if (money >= upgradeRange) {
         money -= upgradeRange;
-        upgradeRange +=1;
-        range += 50;
+        upgradeRange +=5;
+        range += 10;
         updateMoney.textContent = "Money: $" + money;
         updateRange.textContent = "Increase Range: $" + upgradeRange;
 
@@ -320,10 +320,10 @@ function rangeUpgrade() {
 function moneyUpgrade() {
     if (money >= upgradeMoney) {
         money -= upgradeMoney;
-        upgradeMoney +=1;
+        upgradeMoney +=5;
         killValue += 1;
         updateMoney.textContent = "Money: $" + money;
-        updateMoneyCost.textContent = "Increase Range: $" + upgradeRange;
+        updateMoneyCost.textContent = "Increase $ per kill: $" + upgradeMoney;
 
     }
 }
